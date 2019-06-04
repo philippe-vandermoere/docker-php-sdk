@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+set -e
+
+readonly PROJECT_DIRECTORY=$(dirname $(realpath $0))/..
+
+${PROJECT_DIRECTORY}/vendor/bin/phpcs --standard=${PROJECT_DIRECTORY}/phpcs.xml ${PROJECT_DIRECTORY}/

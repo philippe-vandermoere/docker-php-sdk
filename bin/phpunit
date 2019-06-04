@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+set -e
+
+readonly PROJECT_DIRECTORY=$(dirname $(realpath $0))/..
+
+if [[ "$(which phpdbg)" != "" ]]; then
+    # code coverage with phpdbg
+    /usr/bin/env phpdbg -qrr ${PROJECT_DIRECTORY}/vendor/bin/phpunit ${PROJECT_DIRECTORY}/tests \
+        --colors=always \
+        --process-isolation \
+        --bootstrap ${PROJECT_DIRECTORY}/vendor/autoload.php \
+        --whitelist=${PROJECT_DIRECTORY}/src \
+        --coverage-text
+elif [[ "$(/usr/bin/env php -m | grep -c xdebug)" -eq 1 ]]; then
+    # code coverage with xdebug
+    ${PROJECT_DIRECTORY}/vendor/bin/phpunit ${PROJECT_DIRECTORY}/tests \
+        --colors=always \
+        --process-isolation \
+        --bootstrap ${PROJECT_DIRECTORY}/vendor/autoload.php \
+        --whitelist=${PROJECT_DIRECTORY}/src \
+        --coverage-text
+else
+    # no code coverage
+    ${PROJECT_DIRECTORY}/vendor/bin/phpunit ${PROJECT_DIRECTORY}/tests \
+        --colors=always \
+        --process-isolation \
+        --bootstrap ${PROJECT_DIRECTORY}/vendor/autoload.php
+fi

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<ruleset>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <arg name="colors"/>
+    <arg name="report" value="full"/>
+    <rule ref="PSR1">
+        <exclude name="PSR1.Methods.CamelCapsMethodName"/>
+    </rule>
+    <rule ref="PSR2"/>
+</ruleset>
