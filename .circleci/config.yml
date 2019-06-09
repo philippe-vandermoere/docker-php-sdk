@@ -1,0 +1,122 @@
+version: '2.1'
+commands:
+    run_test:
+        description: "Run test"
+        parameters:
+            test:
+                type: string
+        steps:
+            - run:
+                  name: Install packages
+                  command: apk add git
+            - checkout
+            - attach_workspace:
+                  at: .
+            - run:
+                name: << parameters.test >>
+                command: bin/<< parameters.test >>
+
+executors:
+    php_73:
+        docker:
+            - image: php:7.3.6-cli-alpine3.9
+        working_directory: ~/repo
+
+    php_72:
+        docker:
+            - image: php:7.2.19-cli-alpine3.9
+        working_directory: ~/repo
+
+jobs:
+    vendor:
+        parameters:
+            executor:
+                type: string
+        executor: << parameters.executor >>
+        steps:
+            - run:
+                name: Install packages
+                command: apk add git curl
+            - checkout
+            - restore_cache:
+                key: vendor-<< parameters.executor >>-{{ checksum "composer.json" }}-{{ checksum "composer.lock" }}
+            - run:
+                name: composer
+                command: |
+                  if [[ ! -f vendor/autoload.php ]]; then
+                    curl --location --silent https://getcomposer.org/composer.phar -o /usr/bin/composer; \
+                    chmod +x /usr/bin/composer; \
+                    composer global require hirak/prestissimo; \
+                    composer install; \
+                  fi
+            - save_cache:
+                key: vendor-<< parameters.executor >>-{{ checksum "composer.json" }}-{{ checksum "composer.lock" }}
+                paths:
+                    - ./vendor
+            - persist_to_workspace:
+                root: .
+                paths:
+                    - vendor
+
+    phpcs:
+        parameters:
+            executor:
+                type: string
+        executor: << parameters.executor >>
+        steps:
+            - run_test:
+                test: phpcs
+
+    phpstan:
+        parameters:
+            executor:
+                type: string
+        executor: << parameters.executor >>
+        steps:
+          - run_test:
+              test: phpstan
+
+    phpunit:
+        parameters:
+            executor:
+                type: string
+        executor: << parameters.executor >>
+        steps:
+          - run_test:
+              test: phpunit
+
+workflows:
+    version: '2.1'
+    tests_7.3:
+        jobs:
+            - vendor:
+                executor: php_73
+            - phpcs:
+                executor: php_73
+                requires:
+                    - vendor
+            - phpstan:
+                executor: php_73
+                requires:
+                    - vendor
+            - phpunit:
+                executor: php_73
+                requires:
+                    - vendor
+
+    tests_7.2:
+        jobs:
+            - vendor:
+                executor: php_72
+            - phpcs:
+                executor: php_72
+                requires:
+                    - vendor
+            - phpstan:
+                executor: php_72
+                requires:
+                    - vendor
+            - phpunit:
+                executor: php_72
+                requires:
+                    - vendor
