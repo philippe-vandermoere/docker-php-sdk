@@ -11,13 +11,17 @@ namespace PhilippeVandermoere\DockerPhpSdk;
 
 use Http\Client\HttpClient;
 use GuzzleHttp\Psr7\Request;
-use Psr\Http\Message\ResponseInterface;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
-use PhilippeVandermoere\DockerPhpSdk\Exception\JsonException;
 
 abstract class AbstractService
 {
+    use Json;
+
     protected const DOCKER_API_VERSION = 1.37;
+
+    protected const CONTENT_TYPE_JSON = ['Content-Type' => 'application/json'];
+
+    protected const CONTENT_TYPE_TAR = ['Content-Type' => 'application/x-tar'];
 
     /** @var HttpClient */
     protected $dockerClient;
@@ -27,14 +31,18 @@ abstract class AbstractService
         $this->dockerClient = $dockerClient;
     }
 
-    protected function sendRequest(string $route, string $method = 'GET', array $data = []): ResponseInterface
+    protected function sendRequest(string $method, string $route, array $headers = [], $body = null): string
     {
+        if (null !== $body && 'application/json' === ($headers['Content-Type'] ?? '')) {
+            $body = $this->jsonEncode($body);
+        }
+
         $response = $this->dockerClient->sendRequest(
             new Request(
                 $method,
                 'http://' . static::DOCKER_API_VERSION . $route,
-                \count($data) > 0 ? ['Content-Type' => 'application/json'] : [],
-                \count($data) > 0 ? $this->jsonEncode($data) : null
+                $headers,
+                $body
             )
         );
 
@@ -42,33 +50,9 @@ abstract class AbstractService
             throw new DockerException($response->getReasonPhrase(), $response->getStatusCode());
         }
 
-        return $response;
-    }
-
-    protected function jsonEncode(array $data): string
-    {
-        $json = \json_encode($data);
-
-        if (false === $json) {
-            throw new JsonException(\json_last_error());
-        }
-
-        return $json;
-    }
-
-    protected function jsonDecode(string $json)
-    {
-        $data = \json_decode($json);
-
-        if (null === $data) {
-            throw new JsonException(\json_last_error());
-        }
-
-        return $data;
-    }
-
-    protected function jsonDecodeResponse(ResponseInterface $response)
-    {
-        return $this->jsonDecode($response->getBody()->getContents());
+        return $response
+            ->getBody()
+            ->getContents()
+        ;
     }
 }

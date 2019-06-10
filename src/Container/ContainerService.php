@@ -16,7 +16,7 @@ class ContainerService extends AbstractService
     public function list(): ContainerCollection
     {
         $containerCollection = new ContainerCollection();
-        foreach ($this->jsonDecodeResponse($this->sendRequest('/containers/json')) as $data) {
+        foreach ($this->jsonDecode($this->sendRequest('GET', '/containers/json')) as $data) {
             $containerCollection[] = $this->parseContainer($data);
         }
 
@@ -26,16 +26,17 @@ class ContainerService extends AbstractService
     public function get(string $containerId): Container
     {
         return $this->parseContainer(
-            $this->jsonDecodeResponse(
-                $this->sendRequest('/containers/' . $containerId . '/json')
-            )
+            $this->jsonDecode($this->sendRequest('GET', '/containers/' . $containerId . '/json'))
         );
     }
 
     public function getProcess(string $containerId): ProcessCollection
     {
-        $response = $this->jsonDecodeResponse(
-            $this->sendRequest('/containers/' . $containerId . '/top')
+        $response = $this->jsonDecode(
+            $this->sendRequest(
+                'GET',
+                '/containers/' . $containerId . '/top'
+            )
         );
 
         $processCollection = new ProcessCollection();
@@ -62,6 +63,7 @@ class ContainerService extends AbstractService
         \DateTimeInterface $until = null
     ): string {
         return trim($this->sendRequest(
+            'GET',
             '/containers/' . $containerId . '/logs?' . http_build_query(
                 [
                     'stdout' => $stdout,
@@ -70,26 +72,26 @@ class ContainerService extends AbstractService
                     'until' => ($until instanceof \DateTimeInterface) ? $until->getTimestamp() : 0,
                 ]
             )
-        )->getBody()->getContents());
+        ));
     }
 
     public function start(string $containerId): self
     {
-        $this->sendRequest('/containers/' . $containerId . '/start', 'POST');
+        $this->sendRequest('POST', '/containers/' . $containerId . '/start');
 
         return $this;
     }
 
     public function stop(string $containerId): self
     {
-        $this->sendRequest('/containers/' . $containerId . '/stop', 'POST');
+        $this->sendRequest('POST', '/containers/' . $containerId . '/stop');
 
         return $this;
     }
 
     public function restart(string $containerId): self
     {
-        $this->sendRequest('/containers/' . $containerId . '/restart', 'POST');
+        $this->sendRequest('POST', '/containers/' . $containerId . '/restart');
 
         return $this;
     }
@@ -99,10 +101,11 @@ class ContainerService extends AbstractService
         array $command,
         string $workingDirectory = null
     ): string {
-        $id = $this->jsonDecodeResponse(
+        $id = $this->jsonDecode(
             $this->sendRequest(
-                '/containers/' . $containerId . '/exec',
                 'POST',
+                '/containers/' . $containerId . '/exec',
+                static::CONTENT_TYPE_JSON,
                 [
                     'AttachStdin' => false,
                     'AttachStdout' => true,
@@ -115,25 +118,27 @@ class ContainerService extends AbstractService
         )->Id;
 
         $response = $this->sendRequest(
-            '/exec/' . $id . '/start',
             'POST',
+            '/exec/' . $id . '/start',
+            static::CONTENT_TYPE_JSON,
             [
                 'Detach' => false,
                 'Tty' => true
             ]
         );
 
-        $exitCode = $this->jsonDecodeResponse(
+        $exitCode = $this->jsonDecode(
             $this->sendRequest(
+                'GET',
                 '/exec/' . $id . '/json'
             )
         )->ExitCode;
 
         if (false === \is_int($exitCode) || 0 !== $exitCode) {
-            throw new \RuntimeException($response->getBody()->getContents(), $exitCode);
+            throw new \RuntimeException($response, $exitCode);
         }
 
-        return $response->getBody()->getContents();
+        return $response;
     }
 
     protected function parseContainer(\stdClass $data): Container

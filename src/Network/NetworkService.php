@@ -16,7 +16,7 @@ class NetworkService extends AbstractService
     public function list(): NetworkCollection
     {
         $networkCollection = new NetworkCollection();
-        foreach ($this->jsonDecodeResponse($this->sendRequest('/networks')) as $data) {
+        foreach ($this->jsonDecode($this->sendRequest('GET', '/networks')) as $data) {
             $networkCollection[] = new Network(
                 $data->Id,
                 $data->Name,
@@ -30,8 +30,9 @@ class NetworkService extends AbstractService
     public function connectContainer(string $networkId, string $containerId): self
     {
         $this->sendRequest(
-            '/networks/' . $networkId . '/connect',
             'POST',
+            '/networks/' . $networkId . '/connect',
+            static::CONTENT_TYPE_JSON,
             ['Container' => $containerId]
         );
 
