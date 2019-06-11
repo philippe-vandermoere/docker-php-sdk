@@ -10,43 +10,107 @@ declare(strict_types=1);
 namespace PhilippeVandermoere\DockerPhpSdk\Image;
 
 use PhilippeVandermoere\DockerPhpSdk\AbstractService;
-use GuzzleHttp\Psr7\Request;
-use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
+use PhilippeVandermoere\DockerPhpSdk\Exception\DockerBuildException;
+use PhilippeVandermoere\DockerPhpSdk\Exception\DockerInvalidFormatException;
 
 class ImageService extends AbstractService
 {
-    public function build(
-        TarStream $tarStream,
-        array $buildArgs = [],
-        string $dockerfilePath = 'Dockerfile',
-        string $dockerTag = null
-    ): self {
-        // @todo validate $dockerTag format
+    protected const REGEX_PATTERN_REPOSITORY = '[a-z0-9.\/\_-]+';
+
+    protected const REGEX_PATTERN_TAG = '[a-z0-9.\_-]+';
+
+    public function build(TarStream $tarStream, array $buildArgs = [], string $dockerfilePath = 'Dockerfile'): string
+    {
         $query = [
             'dockerfile' => $dockerfilePath,
-            'buildargs' => $this->jsonEncode($buildArgs),
-            't' => $dockerTag,
+            'q' => true,
         ];
 
-        $response = $this->dockerClient->sendRequest(
-            new Request(
-                'POST',
-                'http://' . static::DOCKER_API_VERSION . '/build?' . \http_build_query($query),
-                ['Content-Type' => 'application/x-tar'],
-                $tarStream->getStream('.dockerignore')
+        if (0 < count($buildArgs)) {
+            $query['buildargs'] = $this->jsonEncode($buildArgs);
+        }
+
+        $response = $this->sendRequest(
+            'POST',
+            '/build?' . \http_build_query($query),
+            static::CONTENT_TYPE_TAR,
+            $tarStream->getStream('.dockerignore')
+        );
+
+        $imageId = '';
+        foreach (explode("\r\n", trim($response)) as $rawData) {
+            $data = $this->jsonDecode($rawData);
+            if (isset($data->errorDetail)) {
+                throw new DockerBuildException(
+                    trim($data->errorDetail->message) ?? 'Unknown error.',
+                    $data->errorDetail->code ?? 255
+                );
+            }
+
+            if (isset($data->stream) && 1 === preg_match('/^sha256:/', trim($data->stream))) {
+                $imageId = str_replace('sha256:', '', trim($data->stream));
+            }
+        }
+
+        if ('' === $imageId) {
+            throw new DockerBuildException('Unable to get image Id.');
+        }
+
+        return $imageId;
+    }
+
+    public function tag(string $imageId, string $repository, string $tag): self
+    {
+        $this
+            ->validateParameter(static::REGEX_PATTERN_REPOSITORY, $repository)
+            ->validateParameter(static::REGEX_PATTERN_TAG, $tag)
+        ;
+
+        $this->sendRequest(
+            'POST',
+            '/images/' . $imageId . '/tag?' . \http_build_query(
+                [
+                    'repo' => $repository,
+                    'tag' => $tag,
+                ]
             )
         );
 
-        $tarStream->closeStream();
+        return $this;
+    }
 
-        if ($response->getStatusCode() >= 400) {
-            throw new DockerException($response->getReasonPhrase(), $response->getStatusCode());
+    public function push(
+        DockerAuthentication $dockerAuthentication,
+        string $imageId,
+        string $repository,
+        string $tag
+    ): self {
+        $this->tag(
+            $imageId,
+            $dockerAuthentication->getRegistry() . '/' .$repository,
+            $tag
+        );
+
+        $this->sendRequest(
+            'POST',
+            '/images/' . $dockerAuthentication->getRegistry() . '/' .$repository . ':' . $tag . '/push',
+            ['X-Registry-Auth' => $dockerAuthentication->getDockerCredential()]
+        );
+
+        return $this;
+    }
+
+    protected function validateParameter(string $regex, string $value): self
+    {
+        if (1 !== preg_match('/' . $regex . '/', $value)) {
+            throw new DockerInvalidFormatException(
+                sprintf(
+                    'Parameter `%s` must respect format `%s`.',
+                    $value,
+                    $regex
+                )
+            );
         }
-
-        // @todo verify if error in build
-        // @todo return image object with sha256n id, tag, ...
-
-        //echo $response->getBody()->getContents();
 
         return $this;
     }

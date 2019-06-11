@@ -11,8 +11,6 @@ namespace Test\PhilippeVandermoere\DockerPhpSdk\Network;
 
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\Network\NetworkService;
-use Http\Client\HttpClient;
-use Psr\Http\Message\ResponseInterface;
 use Faker\Factory as FakerFactory;
 use PhilippeVandermoere\DockerPhpSdk\Network\NetworkCollection;
 use PhilippeVandermoere\DockerPhpSdk\Network\Network;
@@ -25,13 +23,13 @@ class NetworkServiceTest extends TestCase
         $networkService = $this
             ->getMockBuilder(NetworkService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $networkService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($response = $faker->text)
         ;
 
         $data = [];
@@ -50,19 +48,22 @@ class NetworkServiceTest extends TestCase
         }
 
         $networkService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturn($data)
         ;
 
         $networkService
             ->expects($this->once())
             ->method('sendRequest')
-            ->with('/networks')
+            ->with(
+                'GET',
+                '/networks'
+            )
         ;
 
         $networkService
             ->expects($this->once())
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->with($response)
         ;
 
@@ -81,7 +82,7 @@ class NetworkServiceTest extends TestCase
 
         $networkService
             ->method('sendRequest')
-            ->willReturn($this->createMock(ResponseInterface::class))
+            ->willReturn($faker->text)
         ;
 
         $networkId = $faker->uuid;
@@ -91,8 +92,9 @@ class NetworkServiceTest extends TestCase
             ->expects($this->once())
             ->method('sendRequest')
             ->with(
-                '/networks/' . $networkId . '/connect',
                 'POST',
+                '/networks/' . $networkId . '/connect',
+                ['Content-Type' => 'application/json'],
                 ['Container' => $containerId]
             )
         ;

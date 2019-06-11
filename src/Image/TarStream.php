@@ -57,9 +57,11 @@ class TarStream
         $this->closeStream();
         $temporaryFilename = \tempnam(\sys_get_temp_dir(), 'tar');
 
+        // @codeCoverageIgnoreStart
         if (false === $temporaryFilename) {
             throw new \RuntimeException('Unable to create temporary tar file.');
         }
+        // @codeCoverageIgnoreEnd
 
         $this->temporaryFilename = $temporaryFilename;
 
@@ -80,15 +82,19 @@ class TarStream
             $this->directory
         );
 
+        // @codeCoverageIgnoreStart
         if (0 !== $process->run()) {
             throw new ProcessFailedException($process);
         }
+        // @codeCoverageIgnoreEnd
 
         $stream = \fopen($this->temporaryFilename, 'r');
 
+        // @codeCoverageIgnoreStart
         if (false === \is_resource($stream)) {
             throw new \RuntimeException('Unable to open temporary tar file.');
         }
+        // @codeCoverageIgnoreEnd
 
         $this->stream = $stream;
 

@@ -17,26 +17,25 @@ use PhilippeVandermoere\DockerPhpSdk\Container\Process;
 use PhilippeVandermoere\DockerPhpSdk\Container\ProcessCollection;
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\Container\ContainerService;
-use Psr\Http\Message\ResponseInterface;
 use Faker\Factory as FakerFactory;
 use PhilippeVandermoere\DockerPhpSdk\Container\ContainerCollection;
 use PhilippeVandermoere\DockerPhpSdk\Container\Container;
-use Psr\Http\Message\StreamInterface;
 
 class ContainerServiceTest extends TestCase
 {
     public function testList(): void
     {
+        $faker = FakerFactory::create();
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($response = $faker->text)
         ;
 
         $data = [];
@@ -48,19 +47,22 @@ class ContainerServiceTest extends TestCase
         }
 
         $containerService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturn($data)
         ;
 
         $containerService
             ->expects($this->once())
             ->method('sendRequest')
-            ->with('/containers/json')
+            ->with(
+                'GET',
+                '/containers/json'
+            )
         ;
 
         $containerService
             ->expects($this->once())
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->with($response)
         ;
 
@@ -69,34 +71,38 @@ class ContainerServiceTest extends TestCase
 
     public function testGet(): void
     {
+        $faker = FakerFactory::create();
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($response = $faker->text)
         ;
 
         $container = $this->createContainer();
 
         $containerService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturn($this->getContainerStdClass($container))
         ;
 
         $containerService
             ->expects($this->once())
             ->method('sendRequest')
-            ->with('/containers/' . $container->getId() . '/json')
+            ->with(
+                'GET',
+                '/containers/' . $container->getId() . '/json'
+            )
         ;
 
         $containerService
             ->expects($this->once())
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->with($response)
         ;
 
@@ -109,13 +115,13 @@ class ContainerServiceTest extends TestCase
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($response = $faker->text)
         ;
 
         $data = new \stdClass();
@@ -144,7 +150,7 @@ class ContainerServiceTest extends TestCase
         }
 
         $containerService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturn($data)
         ;
 
@@ -153,12 +159,15 @@ class ContainerServiceTest extends TestCase
         $containerService
             ->expects($this->once())
             ->method('sendRequest')
-            ->with('/containers/' . $containerId . '/top')
+            ->with(
+                'GET',
+                '/containers/' . $containerId . '/top'
+            )
         ;
 
         $containerService
             ->expects($this->once())
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->with($response)
         ;
 
@@ -174,6 +183,7 @@ class ContainerServiceTest extends TestCase
         ?\DateTimeInterface $until,
         string $output
     ): void {
+        $faker = FakerFactory::create();
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
@@ -183,16 +193,6 @@ class ContainerServiceTest extends TestCase
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($responseInterface = $this->createMock(ResponseInterface::class))
-        ;
-
-        $responseInterface
-            ->method('getBody')
-            ->willReturn($streamInterface = $this->createMock(StreamInterface::class))
-        ;
-
-        $streamInterface
-            ->method('getContents')
             ->willReturn($output)
         ;
 
@@ -200,6 +200,7 @@ class ContainerServiceTest extends TestCase
             ->expects($this->once())
             ->method('sendRequest')
             ->with(
+                'GET',
                 '/containers/' . $containerId . '/logs?' . http_build_query(
                     [
                         'stdout' => $stdout,
@@ -211,18 +212,6 @@ class ContainerServiceTest extends TestCase
             )
         ;
 
-        $responseInterface
-            ->expects($this->once())
-            ->method('getBody')
-            ->with()
-        ;
-
-        $streamInterface
-            ->expects($this->once())
-            ->method('getContents')
-            ->with()
-        ;
-
         static::assertEquals(
             trim($output),
             $containerService->getLogs($containerId, $stdout, $stderr, $since, $until)
@@ -232,7 +221,6 @@ class ContainerServiceTest extends TestCase
     public function testStart(): void
     {
         $faker = FakerFactory::create();
-
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
@@ -242,7 +230,7 @@ class ContainerServiceTest extends TestCase
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($faker->word)
         ;
 
         $containerId = $faker->uuid;
@@ -250,8 +238,8 @@ class ContainerServiceTest extends TestCase
             ->expects($this->once())
             ->method('sendRequest')
             ->with(
-                '/containers/' . $containerId . '/start',
-                'POST'
+                'POST',
+                '/containers/' . $containerId . '/start'
             )
         ;
 
@@ -261,7 +249,6 @@ class ContainerServiceTest extends TestCase
     public function testStop(): void
     {
         $faker = FakerFactory::create();
-
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
@@ -271,7 +258,7 @@ class ContainerServiceTest extends TestCase
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($faker->word)
         ;
 
         $containerId = $faker->uuid;
@@ -279,8 +266,8 @@ class ContainerServiceTest extends TestCase
             ->expects($this->once())
             ->method('sendRequest')
             ->with(
-                '/containers/' . $containerId . '/stop',
-                'POST'
+                'POST',
+                '/containers/' . $containerId . '/stop'
             )
         ;
 
@@ -290,7 +277,6 @@ class ContainerServiceTest extends TestCase
     public function testRestart(): void
     {
         $faker = FakerFactory::create();
-
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
@@ -300,7 +286,7 @@ class ContainerServiceTest extends TestCase
 
         $containerService
             ->method('sendRequest')
-            ->willReturn($response = $this->createMock(ResponseInterface::class))
+            ->willReturn($faker->word)
         ;
 
         $containerId = $faker->uuid;
@@ -308,8 +294,8 @@ class ContainerServiceTest extends TestCase
             ->expects($this->once())
             ->method('sendRequest')
             ->with(
-                '/containers/' . $containerId . '/restart',
-                'POST'
+                'POST',
+                '/containers/' . $containerId . '/restart'
             )
         ;
 
@@ -319,20 +305,19 @@ class ContainerServiceTest extends TestCase
     public function testExecuteCommand(): void
     {
         $faker = FakerFactory::create();
-
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $containerService
             ->method('sendRequest')
             ->willReturnOnConsecutiveCalls(
-                $response1 = $this->createMock(ResponseInterface::class),
-                $response2 = $this->createMock(ResponseInterface::class),
-                $response3 = $this->createMock(ResponseInterface::class)
+                $response1 = $faker->word,
+                $response2 = $faker->word,
+                $response3 = $faker->word
             )
         ;
 
@@ -343,21 +328,11 @@ class ContainerServiceTest extends TestCase
         $stdClassExitCode->ExitCode = $exitCode = 0;
 
         $containerService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturnOnConsecutiveCalls(
                 $stdClassId,
                 $stdClassExitCode
             )
-        ;
-
-        $response2
-            ->method('getBody')
-            ->willReturn($streamInterface = $this->createMock(StreamInterface::class))
-        ;
-
-        $streamInterface
-            ->method('getContents')
-            ->willReturn($output = $faker->text)
         ;
 
         $containerId = $faker->uuid;
@@ -378,8 +353,9 @@ class ContainerServiceTest extends TestCase
             ->method('sendRequest')
             ->withConsecutive(
                 [
-                    '/containers/' . $containerId . '/exec',
                     'POST',
+                    '/containers/' . $containerId . '/exec',
+                    ['Content-Type' => 'application/json'],
                     [
                         'AttachStdin' => false,
                         'AttachStdout' => true,
@@ -390,11 +366,13 @@ class ContainerServiceTest extends TestCase
                     ],
                 ],
                 [
-                    '/exec/' . $id . '/start',
                     'POST',
+                    '/exec/' . $id . '/start',
+                    ['Content-Type' => 'application/json'],
                     ['Detach' => false, 'Tty' => true],
                 ],
                 [
+                    'GET',
                     '/exec/' . $id . '/json',
                 ]
             )
@@ -402,7 +380,7 @@ class ContainerServiceTest extends TestCase
 
         $containerService
             ->expects($this->exactly(2))
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->withConsecutive(
                 [$response1],
                 [$response3]
@@ -410,7 +388,7 @@ class ContainerServiceTest extends TestCase
         ;
 
         static::assertEquals(
-            $output,
+            $response2,
             $containerService->executeCommand($containerId, $command, $workingDirectory)
         );
     }
@@ -418,20 +396,19 @@ class ContainerServiceTest extends TestCase
     public function testExecuteCommandError(): void
     {
         $faker = FakerFactory::create();
-
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecodeResponse', 'sendRequest'])
+            ->setMethods(['jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
         $containerService
             ->method('sendRequest')
             ->willReturnOnConsecutiveCalls(
-                $response1 = $this->createMock(ResponseInterface::class),
-                $response2 = $this->createMock(ResponseInterface::class),
-                $response3 = $this->createMock(ResponseInterface::class)
+                $response1 = $faker->word,
+                $response2 = $faker->word,
+                $response3 = $faker->word
             )
         ;
 
@@ -442,21 +419,11 @@ class ContainerServiceTest extends TestCase
         $stdClassExitCode->ExitCode = $exitCode = mt_rand(1, 255);
 
         $containerService
-            ->method('jsonDecodeResponse')
+            ->method('jsonDecode')
             ->willReturnOnConsecutiveCalls(
                 $stdClassId,
                 $stdClassExitCode
             )
-        ;
-
-        $response2
-            ->method('getBody')
-            ->willReturn($streamInterface = $this->createMock(StreamInterface::class))
-        ;
-
-        $streamInterface
-            ->method('getContents')
-            ->willReturn($output = $faker->text)
         ;
 
         $containerId = $faker->uuid;
@@ -473,7 +440,7 @@ class ContainerServiceTest extends TestCase
         }
 
         static::expectException(\RuntimeException::class);
-        static::expectExceptionMessage($output);
+        static::expectExceptionMessage($response2);
         static::expectExceptionCode($exitCode);
 
         $containerService->executeCommand($containerId, $command, $workingDirectory);

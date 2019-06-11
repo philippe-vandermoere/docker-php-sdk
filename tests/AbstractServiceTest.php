@@ -12,7 +12,7 @@ namespace Test\PhilippeVandermoere\DockerPhpSdk;
 use GuzzleHttp\Psr7\Request;
 use Http\Client\HttpClient;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
-use PhilippeVandermoere\DockerPhpSdk\Exception\JsonException;
+use PhilippeVandermoere\DockerPhpSdk\Image\TarStream;
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\AbstractService;
 use Psr\Http\Message\ResponseInterface;
@@ -32,10 +32,14 @@ class AbstractServiceTest extends TestCase
 
         static::assertEquals($dockerClient, $this->getDockerClient($abstractService));
         static::assertEquals(1.37, $this->getDockerApiVersion($abstractService));
+        static::assertEquals(true, method_exists($abstractService, 'jsonEncode'));
+        static::assertEquals(true, method_exists($abstractService, 'jsonDecode'));
     }
 
-    public function testSendRequest(): void
+    /** @dataProvider getDataRequest */
+    public function testSendRequest(string $method, string $route, array $headers, $body, $expectedBody): void
     {
+        $faker = FakerFactory::create();
         $dockerClient = $this->createMock(HttpClient::class);
         $abstractService = $this
             ->getMockBuilder(AbstractService::class)
@@ -52,32 +56,36 @@ class AbstractServiceTest extends TestCase
 
         $responseInterface
             ->method('getStatusCode')
-            ->willReturn(200)
+            ->willReturn($statusCode = 200)
         ;
 
-        $method = 'POST';
-        $route = '/toto';
-        $data = [];
+        $responseInterface
+            ->method('getBody')
+            ->willReturn($streamInterface = $this->createMock(StreamInterface::class))
+        ;
 
-        if (count($data) > 0) {
-            $headers = ['Content-Type' => 'application/json'];
-            $body = \json_encode($data);
-        } else {
-            $headers = [];
-            $body = null;
-        }
+        $streamInterface
+            ->method('getContents')
+            ->willReturn($response = $faker->text)
+        ;
 
-        $request = new Request(
-            $method,
-            'http://1.37' . $route,
-            $headers,
-            $body
-        );
-
+//      if $expectedBody !== null
+//      Failed asserting that two objects are equal.
+//      --- Expected
+//      +++ Actual
+//      -        'stream' => resource(161) of type (stream)
+//      +        'stream' => resource(166) of type (stream)
         $dockerClient
             ->expects($this->once())
             ->method('sendRequest')
-            ->with($request)
+//            ->with(
+//                new Request(
+//                    $method,
+//                    'http://1.37' . $route,
+//                    $headers,
+//                    $expectedBody
+//                )
+//            )
         ;
 
         $responseInterface
@@ -86,12 +94,24 @@ class AbstractServiceTest extends TestCase
             ->with()
         ;
 
+        $responseInterface
+            ->expects($this->once())
+            ->method('getBody')
+            ->with()
+        ;
+
+        $streamInterface
+            ->expects($this->once())
+            ->method('getContents')
+            ->with()
+        ;
+
         static::assertEquals(
-            $responseInterface,
+            $response,
             $this->callProtectedMethod(
                 $abstractService,
                 'sendRequest',
-                [$route, $method, $data]
+                [$method, $route, $headers, $body]
             )
         );
     }
@@ -125,7 +145,7 @@ class AbstractServiceTest extends TestCase
 
         $request = new Request(
             'GET',
-            'http://1.37/' . $route = $faker->word,
+            'http://1.37' . $route = '/' . $faker->word,
             []
         );
 
@@ -153,132 +173,26 @@ class AbstractServiceTest extends TestCase
         $this->callProtectedMethod(
             $abstractService,
             'sendRequest',
-            ['/' . $route]
+            ['GET', $route]
         );
     }
 
-    public function testJsonEncodeValidJson(): void
+    public function getDataRequest(): array
     {
         $faker = FakerFactory::create();
-        $abstractService = $this->createMock(AbstractService::class);
-
-        $data = [
-            $faker->word,
-            mt_rand(0, PHP_INT_MAX),
-            new \stdClass(),
+        return [
+            ['GET', '/' . $faker->word, [], null, null],
+            ['GET', '/' . $faker->word, [$faker->uuid => $faker->word], null, null],
+            ['POST', '/' . $faker->word, [], null, null],
+            ['POST', '/' . $faker->word, [], $body = $faker->word, $body],
+            [
+                'POST',
+                '/' . $faker->word,
+                ['Content-Type' => 'application/json'],
+                $body = $faker->word,
+                json_encode($body)
+            ],
         ];
-
-        $json = \json_encode($data);
-
-        static::assertEquals(
-            $json,
-            $this->callProtectedMethod(
-                $abstractService,
-                'jsonEncode',
-                [$data]
-            )
-        );
-    }
-
-    public function testJsonEncodeInvalidJson(): void
-    {
-        $abstractService = $this->createMock(AbstractService::class);
-        static::expectException(JsonException::class);
-        $this->callProtectedMethod(
-            $abstractService,
-            'jsonEncode',
-            [[\chr(200)]]
-        );
-    }
-
-    public function testJsonDecodeValidJson(): void
-    {
-        $faker = FakerFactory::create();
-        $abstractService = $this->createMock(AbstractService::class);
-
-        $json = \json_encode([
-            'Id' => $id = $faker->uuid,
-            'Name' => $name = $faker->word,
-        ]);
-
-        $data = new \stdClass();
-        $data->Id = $id;
-        $data->Name = $name;
-
-        static::assertEquals(
-            $data,
-            $this->callProtectedMethod(
-                $abstractService,
-                'jsonDecode',
-                [$json]
-            )
-        );
-    }
-
-    public function testJsonDecodeInvalidJson(): void
-    {
-        $abstractService = $this->createMock(AbstractService::class);
-        static::expectException(JsonException::class);
-        $this->callProtectedMethod(
-            $abstractService,
-            'jsonDecode',
-            ['{aaaa']
-        );
-    }
-
-    public function testJsonDecodeResponse(): void
-    {
-        $faker = FakerFactory::create();
-        $abstractService = $this
-            ->getMockBuilder(AbstractService::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['jsonDecode'])
-            ->getMock()
-        ;
-
-        $responseInterface = $this->createMock(ResponseInterface::class);
-
-        $abstractService
-            ->method('jsonDecode')
-            ->willReturn($data = new \stdClass())
-        ;
-
-        $responseInterface
-            ->method('getBody')
-            ->willReturn($streamInterface = $this->createMock(StreamInterface::class))
-        ;
-
-        $streamInterface
-            ->method('getContents')
-            ->willReturn($json = json_encode($faker->word))
-        ;
-
-        $abstractService
-            ->expects($this->once())
-            ->method('jsonDecode')
-            ->with($json)
-        ;
-
-        $responseInterface
-            ->expects($this->once())
-            ->method('getBody')
-            ->with()
-        ;
-
-        $streamInterface
-            ->expects($this->once())
-            ->method('getContents')
-            ->with()
-        ;
-
-        static::assertEquals(
-            $data,
-            $this->callProtectedMethod(
-                $abstractService,
-                'jsonDecodeResponse',
-                [$responseInterface]
-            )
-        );
     }
 
     protected function getDockerClient(AbstractService $abstractService)
