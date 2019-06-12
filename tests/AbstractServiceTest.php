@@ -15,6 +15,7 @@ use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
 use PhilippeVandermoere\DockerPhpSdk\Image\TarStream;
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\AbstractService;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Faker\Factory as FakerFactory;
 use Psr\Http\Message\StreamInterface;
@@ -44,6 +45,7 @@ class AbstractServiceTest extends TestCase
         $abstractService = $this
             ->getMockBuilder(AbstractService::class)
             ->setConstructorArgs([$dockerClient])
+            ->setMethods(['createRequest'])
             ->getMock()
         ;
 
@@ -69,23 +71,26 @@ class AbstractServiceTest extends TestCase
             ->willReturn($response = $faker->text)
         ;
 
-//      if $expectedBody !== null
-//      Failed asserting that two objects are equal.
-//      --- Expected
-//      +++ Actual
-//      -        'stream' => resource(161) of type (stream)
-//      +        'stream' => resource(166) of type (stream)
+        $abstractService
+            ->method('createRequest')
+            ->willReturn($request = $this->createMock(RequestInterface::class))
+        ;
+
+        $abstractService
+            ->expects($this->once())
+            ->method('createRequest')
+            ->with(
+                $method,
+                'http://' . $this->getDockerApiVersion($abstractService) . $route,
+                $headers,
+                $expectedBody
+            )
+        ;
+
         $dockerClient
             ->expects($this->once())
             ->method('sendRequest')
-//            ->with(
-//                new Request(
-//                    $method,
-//                    'http://1.37' . $route,
-//                    $headers,
-//                    $expectedBody
-//                )
-//            )
+            ->with($request)
         ;
 
         $responseInterface
@@ -145,7 +150,7 @@ class AbstractServiceTest extends TestCase
 
         $request = new Request(
             'GET',
-            'http://1.37' . $route = '/' . $faker->word,
+            'http://' . $this->getDockerApiVersion($abstractService) . $route = '/' . $faker->word,
             []
         );
 

@@ -12,6 +12,7 @@ namespace PhilippeVandermoere\DockerPhpSdk;
 use Http\Client\HttpClient;
 use GuzzleHttp\Psr7\Request;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
+use Psr\Http\Message\RequestInterface;
 
 abstract class AbstractService
 {
@@ -38,7 +39,7 @@ abstract class AbstractService
         }
 
         $response = $this->dockerClient->sendRequest(
-            new Request(
+            $this->createRequest(
                 $method,
                 'http://' . static::DOCKER_API_VERSION . $route,
                 $headers,
@@ -54,5 +55,15 @@ abstract class AbstractService
             ->getBody()
             ->getContents()
         ;
+    }
+
+    protected function createRequest(string $method, string $uri, array $headers = [], $body = null): RequestInterface
+    {
+        return new Request(
+            $method,
+            $uri,
+            $headers,
+            $body
+        );
     }
 }
