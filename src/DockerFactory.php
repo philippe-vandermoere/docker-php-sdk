@@ -17,24 +17,27 @@ use PhilippeVandermoere\DockerPhpSdk\Image\ImageService;
 
 class DockerFactory
 {
-    protected static $dockerSocketPath = '/var/run/docker.sock';
+    public const DOCKER_SOCKET_PATH = '/var/run/docker.sock';
 
-    public static function setDockerSocketPath(string $dockerSocketPath): void
-    {
-        static::$dockerSocketPath = $dockerSocketPath;
-    }
+    public const DOCKER_TCP_HOST = '127.0.0.1';
 
-    public static function getDockerSocketPath(): string
-    {
-        return static::$dockerSocketPath;
-    }
+    public const DOCKER_TCP_PORT = 2375;
 
-    public static function createDockerClient(): CurlClient
+    public static function createSocketDockerClient(string $dockerSocketPath): CurlClient
     {
         return new CurlClient(
             null,
             null,
-            [CURLOPT_UNIX_SOCKET_PATH => static::$dockerSocketPath]
+            [CURLOPT_UNIX_SOCKET_PATH => $dockerSocketPath]
+        );
+    }
+
+    public static function createTCPDockerClient(string $host, int $port): CurlClient
+    {
+        return new CurlClient(
+            null,
+            null,
+            [CURLOPT_PROXY => $host . ':' . $port]
         );
     }
 

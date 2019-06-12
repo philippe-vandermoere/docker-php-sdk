@@ -12,7 +12,6 @@ namespace Test\PhilippeVandermoere\DockerPhpSdk;
 use GuzzleHttp\Psr7\Request;
 use Http\Client\HttpClient;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
-use PhilippeVandermoere\DockerPhpSdk\Image\TarStream;
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\AbstractService;
 use Psr\Http\Message\RequestInterface;

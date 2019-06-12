@@ -14,26 +14,39 @@ use PhilippeVandermoere\DockerPhpSdk\DockerFactory;
 use PhilippeVandermoere\DockerPhpSdk\DockerService;
 use Http\Client\Curl\Client as CurlClient;
 use Http\Client\HttpClient;
+use Faker\Factory as FakerFactory;
 
 class DockerFactoryTest extends TestCase
 {
-    public function testDockerSocketPath(): void
+    public function testConstants(): void
     {
-        static::assertEquals('/var/run/docker.sock', DockerFactory::getDockerSocketPath());
-        DockerFactory::setDockerSocketPath(
-            $dockerSocketPath = tempnam(sys_get_temp_dir(), 'docker')
-        );
-
-        static::assertEquals($dockerSocketPath, DockerFactory::getDockerSocketPath());
+        static::assertEquals('/var/run/docker.sock', DockerFactory::DOCKER_SOCKET_PATH);
+        static::assertEquals('127.0.0.1', DockerFactory::DOCKER_TCP_HOST);
+        static::assertEquals(2375, DockerFactory::DOCKER_TCP_PORT);
     }
 
-    public function testCreateDockerClient(): void
+    public function testCreateSocketDockerClient(): void
     {
-        $curlClient = DockerFactory::createDockerClient();
+        $faker = FakerFactory::create();
+        $curlClient = DockerFactory::createSocketDockerClient($socket = $faker->word);
         static::assertInstanceOf(CurlClient::class, $curlClient);
         static::assertEquals(
-            DockerFactory::getDockerSocketPath(),
+            $socket,
             $this->getCurlOption($curlClient, CURLOPT_UNIX_SOCKET_PATH)
+        );
+    }
+
+    public function testCreateTCPDockerClient(): void
+    {
+        $faker = FakerFactory::create();
+        $curlClient = DockerFactory::createTCPDockerClient(
+            $host = $faker->localIpv4,
+            $port = mt_rand(1, 65535)
+        );
+        static::assertInstanceOf(CurlClient::class, $curlClient);
+        static::assertEquals(
+            $host . ':' . $port,
+            $this->getCurlOption($curlClient, CURLOPT_PROXY)
         );
     }
 
