@@ -26,6 +26,6 @@ $dockerService = DockerFactory::createDockerService(
 use PhilippeVandermoere\DockerPhpSdk\DockerFactory;
 
 $dockerService = DockerFactory::createDockerService(
-    DockerFactory::createTCPDockerClient(DockerFactory::DOCKER_TCP_HOST, DockerFactory::DOCKER_TCP_PORT)
+    DockerFactory::createTCPDockerClient(DockerFactory::DOCKER_TCP_HOST . ':' . DockerFactory::DOCKER_TCP_PORT)
 );
 ```

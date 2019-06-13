@@ -40,12 +40,11 @@ class DockerFactoryTest extends TestCase
     {
         $faker = FakerFactory::create();
         $curlClient = DockerFactory::createTCPDockerClient(
-            $host = $faker->localIpv4,
-            $port = mt_rand(1, 65535)
+            $host = $faker->localIpv4 . ':' . mt_rand(1, 65535)
         );
         static::assertInstanceOf(CurlClient::class, $curlClient);
         static::assertEquals(
-            $host . ':' . $port,
+            $host,
             $this->getCurlOption($curlClient, CURLOPT_PROXY)
         );
     }

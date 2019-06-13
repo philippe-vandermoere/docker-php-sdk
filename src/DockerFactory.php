@@ -32,12 +32,12 @@ class DockerFactory
         );
     }
 
-    public static function createTCPDockerClient(string $host, int $port): CurlClient
+    public static function createTCPDockerClient(string $host): CurlClient
     {
         return new CurlClient(
             null,
             null,
-            [CURLOPT_PROXY => $host . ':' . $port]
+            [CURLOPT_PROXY => $host]
         );
     }
 
