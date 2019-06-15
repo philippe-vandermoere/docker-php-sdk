@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Test\PhilippeVandermoere\DockerPhpSdk;
 
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Stream;
 use Http\Client\HttpClient;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
 use PHPUnit\Framework\TestCase;
@@ -195,6 +196,12 @@ class AbstractServiceTest extends TestCase
                 ['Content-Type' => 'application/json'],
                 $body = $faker->word,
                 json_encode($body)
+            ],
+            [
+                'POST', '/' . $faker->word,
+                [],
+                $body = new Stream(fopen(__FILE__, 'r')),
+                $body
             ],
         ];
     }

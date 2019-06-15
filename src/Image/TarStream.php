@@ -9,33 +9,23 @@ declare(strict_types=1);
 
 namespace PhilippeVandermoere\DockerPhpSdk\Image;
 
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
+use GuzzleHttp\Psr7\Stream;
 
-class TarStream
+class TarStream extends Stream
 {
     public const TAR_NO_COMPRESSION = '';
+    public const TAR_COMPRESSION_GZIP = 'z';
+    public const TAR_COMPRESSION_BZIP2 = 'j';
+    public const TAR_COMPRESSION_XZ = 'J';
 
-    public const TAR_COMPRESSION_GZIP = '-z';
+    /** @var ?resource */
+    protected $process;
 
-    public const TAR_COMPRESSION_BZIP2 = '-j';
-
-    public const TAR_COMPRESSION_XZ = '-J';
-
-    /** @var string */
-    protected $directory;
-
-    /** @var string */
-    protected $tarCompression;
-
-    /** @var resource */
-    protected $stream;
-
-    /** @var ?string */
-    protected $temporaryFilename;
-
-    public function __construct(string $directory, string $tarCompression = self::TAR_NO_COMPRESSION)
-    {
+    public function __construct(
+        string $directory,
+        string $tarCompression = self::TAR_NO_COMPRESSION,
+        string $excludeFile = null
+    ) {
         if (false === \is_dir($directory)) {
             throw new \RuntimeException('The directory ' . $directory . ' doesn\'t exist.');
         }
@@ -48,75 +38,61 @@ class TarStream
             throw new \RuntimeException('The tar compression format ' . $tarCompression . ' is not valid.');
         }
 
-        $this->directory = rtrim($directory, '/');
-        $this->tarCompression = $tarCompression;
-    }
-
-    public function getStream(string $excludeFile = null)
-    {
-        $this->closeStream();
-        $temporaryFilename = \tempnam(\sys_get_temp_dir(), 'tar');
-
-        // @codeCoverageIgnoreStart
-        if (false === $temporaryFilename) {
-            throw new \RuntimeException('Unable to create temporary tar file.');
+        $cmd = 'tar -c' . $tarCompression;
+        if (\is_file($directory . '/' . $excludeFile)) {
+            $cmd .= ' -X' . $excludeFile;
         }
-        // @codeCoverageIgnoreEnd
+        $cmd .= ' .';
 
-        $this->temporaryFilename = $temporaryFilename;
-
-        $cmd = ['tar', '-c', '-f', $this->temporaryFilename];
-        if (static::TAR_NO_COMPRESSION !== $this->tarCompression) {
-            $cmd[] = $this->tarCompression;
-        }
-
-        if (\is_file($this->directory . '/' . $excludeFile)) {
-            $cmd[] = '-X';
-            $cmd[] = $excludeFile;
-        }
-
-        $cmd[] = '.';
-
-        $process = new Process(
+        $process = \proc_open(
             $cmd,
-            $this->directory
+            [
+                ['pipe', 'r'],
+                ['pipe', 'w'],
+                ['pipe', 'w'],
+            ],
+            $pipes,
+            $directory
         );
 
         // @codeCoverageIgnoreStart
-        if (0 !== $process->run()) {
-            throw new ProcessFailedException($process);
+        if (false === \is_resource($process)) {
+            throw new \RuntimeException('Unable to execute ' . $cmd . '.');
         }
         // @codeCoverageIgnoreEnd
 
-        $stream = \fopen($this->temporaryFilename, 'r');
-
+        usleep(10000);
         // @codeCoverageIgnoreStart
-        if (false === \is_resource($stream)) {
-            throw new \RuntimeException('Unable to open temporary tar file.');
+        if (0 < \proc_get_status($process)['exitcode']) {
+            $stdOut = \stream_get_contents($pipes[1]);
+            $stdErr = \stream_get_contents($pipes[2]);
+            $this->close();
+
+            throw new \RuntimeException(
+                'Error executing command: ' . $cmd . PHP_EOL
+                . 'Output:' . $stdOut . PHP_EOL .
+                'Error output:' . $stdErr
+            );
         }
         // @codeCoverageIgnoreEnd
 
-        $this->stream = $stream;
+        $this->process = $process;
 
-        return $this->stream;
+        parent::__construct($pipes[1], []);
     }
 
-    public function closeStream(): self
+    public function close()
     {
-        if (\is_resource($this->stream)) {
-            \fclose($this->stream);
+        if (\is_resource($this->process)) {
+            \proc_close($this->process);
+            $this->process = null;
         }
 
-        if (null !== $this->temporaryFilename && \is_writable($this->temporaryFilename)) {
-            @\unlink($this->temporaryFilename);
-            $this->temporaryFilename = null;
-        }
-
-        return $this;
+        parent::close();
     }
 
-    public function __destruct()
+    public function getSize()
     {
-        $this->closeStream();
+        return null;
     }
 }

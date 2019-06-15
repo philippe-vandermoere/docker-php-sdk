@@ -13,6 +13,7 @@ use Http\Client\HttpClient;
 use GuzzleHttp\Psr7\Request;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerException;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\StreamInterface;
 
 abstract class AbstractService
 {
@@ -46,6 +47,10 @@ abstract class AbstractService
                 $body
             )
         );
+
+        if ($body instanceof StreamInterface) {
+            $body->close();
+        }
 
         if ($response->getStatusCode() >= 400) {
             throw new DockerException($response->getReasonPhrase(), $response->getStatusCode());

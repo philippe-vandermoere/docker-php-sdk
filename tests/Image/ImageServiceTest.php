@@ -45,11 +45,6 @@ class ImageServiceTest extends TestCase
         ;
 
         $tarStream = $this->createMock(TarStream::class);
-        $tarStream
-            ->method('getStream')
-            ->willReturn($resource = fopen(__FILE__, 'r'))
-        ;
-
         $imageService
             ->expects($this->once())
             ->method('sendRequest')
@@ -57,14 +52,8 @@ class ImageServiceTest extends TestCase
                 'POST',
                 '/build?' . http_build_query($query),
                 ['Content-Type' => 'application/x-tar'],
-                $resource
+                $tarStream
             )
-        ;
-
-        $tarStream
-            ->expects($this->once())
-            ->method('getStream')
-            ->with('.dockerignore')
         ;
 
         static::assertEquals(
@@ -89,11 +78,6 @@ class ImageServiceTest extends TestCase
         ;
 
         $tarStream = $this->createMock(TarStream::class);
-        $tarStream
-            ->method('getStream')
-            ->willReturn($resource = fopen(__FILE__, 'r'))
-        ;
-
         $imageService
             ->expects($this->once())
             ->method('sendRequest')
@@ -101,14 +85,8 @@ class ImageServiceTest extends TestCase
                 'POST',
                 '/build?' . http_build_query(['dockerfile' => 'Dockerfile', 'q' => true]),
                 ['Content-Type' => 'application/x-tar'],
-                $resource
+                $tarStream
             )
-        ;
-
-        $tarStream
-            ->expects($this->once())
-            ->method('getStream')
-            ->with('.dockerignore')
         ;
 
         static::expectException(DockerBuildException::class);
@@ -140,10 +118,6 @@ class ImageServiceTest extends TestCase
         ;
 
         $tarStream = $this->createMock(TarStream::class);
-        $tarStream
-            ->method('getStream')
-            ->willReturn($resource = fopen(__FILE__, 'r'))
-        ;
 
         $imageService
             ->expects($this->once())
@@ -152,14 +126,8 @@ class ImageServiceTest extends TestCase
                 'POST',
                 '/build?' . http_build_query(['dockerfile' => 'Dockerfile', 'q' => true]),
                 ['Content-Type' => 'application/x-tar'],
-                $resource
+                $tarStream
             )
-        ;
-
-        $tarStream
-            ->expects($this->once())
-            ->method('getStream')
-            ->with('.dockerignore')
         ;
 
         static::expectException(DockerBuildException::class);

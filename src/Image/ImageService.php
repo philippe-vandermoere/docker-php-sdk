@@ -34,7 +34,7 @@ class ImageService extends AbstractService
             'POST',
             '/build?' . \http_build_query($query),
             static::CONTENT_TYPE_TAR,
-            $tarStream->getStream('.dockerignore')
+            $tarStream
         );
 
         $imageId = '';
