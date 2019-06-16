@@ -60,4 +60,27 @@ class NetworkCollectionTest extends TestCase
         static::expectException(KeyNotFoundException::class);
         $networkCollection->offsetGet(mt_rand(0, PHP_INT_MAX));
     }
+
+    public function testHasFalse(): void
+    {
+        $faker = FakerFactory::create();
+        $networkCollection = new NetworkCollection();
+        static::assertEquals(
+            false,
+            $networkCollection->has($faker->uuid)
+        );
+    }
+
+    public function testHasTrue(): void
+    {
+        $faker = FakerFactory::create();
+        $networkCollection = new NetworkCollection(
+            [new Network($id = $faker->uuid, $faker->text, $faker->localIpv4)]
+        );
+
+        static::assertEquals(
+            true,
+            $networkCollection->has($id)
+        );
+    }
 }

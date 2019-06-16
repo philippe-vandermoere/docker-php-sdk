@@ -60,4 +60,27 @@ class ContainerCollectionTest extends TestCase
         static::expectException(KeyNotFoundException::class);
         $containerCollection->offsetGet(mt_rand(0, PHP_INT_MAX));
     }
+
+    public function testHasFalse(): void
+    {
+        $faker = FakerFactory::create();
+        $containerCollection = new ContainerCollection();
+        static::assertEquals(
+            false,
+            $containerCollection->has($faker->uuid)
+        );
+    }
+
+    public function testHasTrue(): void
+    {
+        $faker = FakerFactory::create();
+        $containerCollection = new ContainerCollection(
+            [new Container($id = $faker->uuid, $faker->text, $faker->text)]
+        );
+
+        static::assertEquals(
+            true,
+            $containerCollection->has($id)
+        );
+    }
 }

@@ -9,10 +9,13 @@ declare(strict_types=1);
 
 namespace PhilippeVandermoere\DockerPhpSdk\Container;
 
+use PhilippeVandermoere\DockerPhpSdk\ObjectArrayTrait;
 use steevanb\PhpTypedArray\ObjectArray\ObjectArray;
 
 class ProcessCollection extends ObjectArray
 {
+    use ObjectArrayTrait;
+
     public function __construct(iterable $values = [])
     {
         parent::__construct($values, Process::class);
@@ -21,5 +24,10 @@ class ProcessCollection extends ObjectArray
     public function offsetGet($offset): Process
     {
         return parent::offsetGet($offset);
+    }
+
+    public function current(): Process
+    {
+        return parent::current();
     }
 }

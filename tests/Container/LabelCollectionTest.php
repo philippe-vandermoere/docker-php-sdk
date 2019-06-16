@@ -60,4 +60,50 @@ class LabelCollectionTest extends TestCase
         static::expectException(KeyNotFoundException::class);
         $labelCollection->offsetGet(mt_rand(0, PHP_INT_MAX));
     }
+
+    public function testHasFalse(): void
+    {
+        $faker = FakerFactory::create();
+        $labelCollection = new LabelCollection();
+        static::assertEquals(
+            false,
+            $labelCollection->has($faker->word)
+        );
+    }
+
+    public function testHasTrue(): void
+    {
+        $faker = FakerFactory::create();
+        $labelCollection = new LabelCollection(
+            [new Label($label = $faker->text, $faker->text)]
+        );
+
+        static::assertEquals(
+            true,
+            $labelCollection->has($label)
+        );
+    }
+
+    public function testGetValue(): void
+    {
+        $faker = FakerFactory::create();
+        $labelCollection = new LabelCollection(
+            [new Label($label = $faker->text, $value = $faker->text)]
+        );
+
+        static::assertEquals(
+            $value,
+            $labelCollection->getValue($label)
+        );
+    }
+
+    public function testGetValueNull(): void
+    {
+        $faker = FakerFactory::create();
+        $labelCollection = new LabelCollection();
+        static::assertEquals(
+            null,
+            $labelCollection->getValue($faker->word)
+        );
+    }
 }
