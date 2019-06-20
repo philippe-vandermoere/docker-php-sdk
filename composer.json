@@ -15,9 +15,9 @@
         "php": "^7.2.0",
         "ext-curl": "*",
         "ext-json": "*",
+        "php-http/curl-client": "^2.0",
         "guzzlehttp/psr7": "^1.5",
-        "php-http/message": "^1.7",
-        "php-http/curl-client": "^1.7",
+        "zendframework/zend-diactoros": "^2.1",
         "steevanb/php-typed-array": "^2.0",
         "symfony/process": "^4.0"
     },
