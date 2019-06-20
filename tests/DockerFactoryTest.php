@@ -60,7 +60,7 @@ class DockerFactoryTest extends TestCase
     protected function getCurlOption(CurlClient $curlClient, int $option)
     {
         $reflectionClass = new \ReflectionClass(CurlClient::class);
-        $reflectionProperty = $reflectionClass->getProperty('options');
+        $reflectionProperty = $reflectionClass->getProperty('curlOptions');
         $reflectionProperty->setAccessible(true);
 
         $curlOptions = $reflectionProperty->getValue($curlClient);
