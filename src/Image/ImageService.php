@@ -19,22 +19,29 @@ class ImageService extends AbstractService
 
     protected const REGEX_PATTERN_TAG = '[a-z0-9.\_-]+';
 
-    public function build(TarStream $tarStream, array $buildArgs = [], string $dockerfilePath = 'Dockerfile'): string
-    {
+    public function build(
+        BuildContextInterface $buildContext,
+        array $buildArguments = [],
+        string $dockerfilePath = 'Dockerfile'
+    ): string {
         $query = [
             'dockerfile' => $dockerfilePath,
             'q' => true,
         ];
 
-        if (0 < count($buildArgs)) {
-            $query['buildargs'] = $this->jsonEncode($buildArgs);
+        if (null !== $buildContext->getRemote()) {
+            $query['remote'] = $buildContext->getRemote();
+        }
+
+        if (0 < count($buildArguments)) {
+            $query['buildargs'] = $this->jsonEncode($buildArguments);
         }
 
         $response = $this->sendRequest(
             'POST',
             '/build?' . \http_build_query($query),
             static::CONTENT_TYPE_TAR,
-            $tarStream
+            $buildContext->getStream()
         );
 
         $imageId = '';

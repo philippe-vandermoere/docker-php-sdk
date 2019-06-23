@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace PhilippeVandermoere\DockerPhpSdk\Image;
 
 use GuzzleHttp\Psr7\Stream;
+use Symfony\Component\Finder\Finder;
 
 class TarStream extends Stream
 {
@@ -42,8 +43,8 @@ class TarStream extends Stream
         if (\is_file($directory . '/' . $excludeFile)) {
             $cmd .= ' -X' . $excludeFile;
         }
-        $cmd .= ' .';
 
+        $cmd .= ' .';
         $process = \proc_open(
             $cmd,
             [
