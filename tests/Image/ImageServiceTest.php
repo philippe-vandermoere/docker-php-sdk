@@ -12,6 +12,7 @@ namespace Test\PhilippeVandermoere\DockerPhpSdk\Image;
 use Http\Client\HttpClient;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerBuildException;
 use PhilippeVandermoere\DockerPhpSdk\Exception\DockerInvalidFormatException;
+use PhilippeVandermoere\DockerPhpSdk\Image\BuildContextInterface;
 use PhilippeVandermoere\DockerPhpSdk\Image\DockerAuthentication;
 use PhilippeVandermoere\DockerPhpSdk\Image\TarStream;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +24,18 @@ class ImageServiceTest extends TestCase
     /** @dataProvider getDataBuild */
     public function testBuild(string $imageId, array $buildArgs, string $dockerfilePath): void
     {
+        $tarStream = $this->createMock(TarStream::class);
+        $buildContext = $this->createMock(BuildContextInterface::class);
+        $buildContext
+            ->method('getRemote')
+            ->willReturn(null);
+        ;
+
+        $buildContext
+            ->method('getStream')
+            ->willReturn($tarStream);
+        ;
+
         $query = [
             'dockerfile' => $dockerfilePath,
             'q' => true,
@@ -44,7 +57,18 @@ class ImageServiceTest extends TestCase
             ->willReturn($response = json_encode(['stream' => 'sha256:' . $imageId]));
         ;
 
-        $tarStream = $this->createMock(TarStream::class);
+        $buildContext
+            ->expects($this->once())
+            ->method('getRemote')
+            ->with()
+        ;
+
+        $buildContext
+            ->expects($this->once())
+            ->method('getStream')
+            ->with()
+        ;
+
         $imageService
             ->expects($this->once())
             ->method('sendRequest')
@@ -58,13 +82,93 @@ class ImageServiceTest extends TestCase
 
         static::assertEquals(
             $imageId,
-            $imageService->build($tarStream, $buildArgs, $dockerfilePath)
+            $imageService->build($buildContext, $buildArgs, $dockerfilePath)
+        );
+    }
+
+    /** @dataProvider getDataBuild */
+    public function testBuildRemote(string $imageId, array $buildArgs, string $dockerfilePath): void
+    {
+        $faker = FakerFactory::create();
+
+        $buildContext = $this->createMock(BuildContextInterface::class);
+        $buildContext
+            ->method('getRemote')
+            ->willReturn($remote = $faker->word);
+        ;
+
+        $buildContext
+            ->method('getStream')
+            ->willReturn(null);
+        ;
+
+        $query = [
+            'dockerfile' => $dockerfilePath,
+            'q' => true,
+            'remote' => $remote
+        ];
+
+        if (0 < count($buildArgs)) {
+            $query['buildargs'] = json_encode($buildArgs);
+        }
+
+        $imageService = $this
+            ->getMockBuilder(ImageService::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['sendRequest'])
+            ->getMock()
+        ;
+
+        $imageService
+            ->method('sendRequest')
+            ->willReturn($response = json_encode(['stream' => 'sha256:' . $imageId]));
+        ;
+
+        $buildContext
+            ->expects($this->exactly(2))
+            ->method('getRemote')
+            ->with()
+        ;
+
+        $buildContext
+            ->expects($this->once())
+            ->method('getStream')
+            ->with()
+        ;
+
+        $imageService
+            ->expects($this->once())
+            ->method('sendRequest')
+            ->with(
+                'POST',
+                '/build?' . http_build_query($query),
+                ['Content-Type' => 'application/x-tar'],
+                null
+            )
+        ;
+
+        static::assertEquals(
+            $imageId,
+            $imageService->build($buildContext, $buildArgs, $dockerfilePath)
         );
     }
 
     public function testBuildErrorNoImageId(): void
     {
         $faker = FakerFactory::create();
+
+        $tarStream = $this->createMock(TarStream::class);
+        $buildContext = $this->createMock(BuildContextInterface::class);
+        $buildContext
+            ->method('getRemote')
+            ->willReturn(null);
+        ;
+
+        $buildContext
+            ->method('getStream')
+            ->willReturn($tarStream);
+        ;
+
         $imageService = $this
             ->getMockBuilder(ImageService::class)
             ->disableOriginalConstructor()
@@ -77,7 +181,18 @@ class ImageServiceTest extends TestCase
             ->willReturn($response = json_encode(['stream' => $faker->text]));
         ;
 
-        $tarStream = $this->createMock(TarStream::class);
+        $buildContext
+            ->expects($this->once())
+            ->method('getRemote')
+            ->with()
+        ;
+
+        $buildContext
+            ->expects($this->once())
+            ->method('getStream')
+            ->with()
+        ;
+
         $imageService
             ->expects($this->once())
             ->method('sendRequest')
@@ -92,12 +207,25 @@ class ImageServiceTest extends TestCase
         static::expectException(DockerBuildException::class);
         static::expectExceptionMessage('Unable to get image Id.');
 
-        $imageService->build($tarStream);
+        $imageService->build($buildContext);
     }
 
     public function testBuildErrorBuild(): void
     {
         $faker = FakerFactory::create();
+
+        $tarStream = $this->createMock(TarStream::class);
+        $buildContext = $this->createMock(BuildContextInterface::class);
+        $buildContext
+            ->method('getRemote')
+            ->willReturn(null);
+        ;
+
+        $buildContext
+            ->method('getStream')
+            ->willReturn($tarStream);
+        ;
+
         $imageService = $this
             ->getMockBuilder(ImageService::class)
             ->disableOriginalConstructor()
@@ -117,8 +245,6 @@ class ImageServiceTest extends TestCase
             ->willReturn($response = json_encode($error));
         ;
 
-        $tarStream = $this->createMock(TarStream::class);
-
         $imageService
             ->expects($this->once())
             ->method('sendRequest')
@@ -130,11 +256,23 @@ class ImageServiceTest extends TestCase
             )
         ;
 
+        $buildContext
+            ->expects($this->once())
+            ->method('getRemote')
+            ->with()
+        ;
+
+        $buildContext
+            ->expects($this->once())
+            ->method('getStream')
+            ->with()
+        ;
+
         static::expectException(DockerBuildException::class);
         static::expectExceptionMessage($errorMessage);
         static::expectExceptionCode($errorCode);
 
-        $imageService->build($tarStream);
+        $imageService->build($buildContext);
     }
 
     public function testTag(): void
