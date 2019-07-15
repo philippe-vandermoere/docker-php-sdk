@@ -183,7 +183,6 @@ class ContainerServiceTest extends TestCase
         ?\DateTimeInterface $until,
         string $output
     ): void {
-        $faker = FakerFactory::create();
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
@@ -300,6 +299,38 @@ class ContainerServiceTest extends TestCase
         ;
 
         static::assertEquals($containerService, $containerService->restart($containerId));
+    }
+
+    /** @dataProvider getRemoveData */
+    public function testRemove(bool $force = false, bool $deleteVolume = false): void
+    {
+        $faker = FakerFactory::create();
+        $containerService = $this
+            ->getMockBuilder(ContainerService::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['sendRequest'])
+            ->getMock()
+        ;
+
+        $containerService
+            ->method('sendRequest')
+            ->willReturn($faker->word)
+        ;
+
+        $containerId = $faker->uuid;
+        $containerService
+            ->expects($this->once())
+            ->method('sendRequest')
+            ->with(
+                'DELETE',
+                '/containers/' . $containerId . '?' . http_build_query(['v' => $deleteVolume, 'force' => $force])
+            )
+        ;
+
+        static::assertEquals(
+            $containerService,
+            $containerService->remove($containerId, $force, $deleteVolume)
+        );
     }
 
     public function testExecuteCommand(): void
@@ -467,6 +498,16 @@ class ContainerServiceTest extends TestCase
             [$faker->uuid, false, true, $faker->dateTime, $faker->dateTime, $faker->word],
             [$faker->uuid, true, false, $faker->dateTime, $faker->dateTime, $faker->word],
             [$faker->uuid, false, false, $faker->dateTime, $faker->dateTime, $faker->word],
+        ];
+    }
+
+    public function getRemoveData(): array
+    {
+        return [
+            [true, true],
+            [true, false],
+            [false, true],
+            [false, false],
         ];
     }
 

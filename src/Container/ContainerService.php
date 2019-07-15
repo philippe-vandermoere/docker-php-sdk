@@ -96,6 +96,21 @@ class ContainerService extends AbstractService
         return $this;
     }
 
+    public function remove(string $containerId, bool $force = false, bool $deleteVolume = false): self
+    {
+        $query = [
+            'v' => $deleteVolume,
+            'force' => $force,
+        ];
+
+        $this->sendRequest(
+            'DELETE',
+            '/containers/' . $containerId . '?' . http_build_query($query)
+        );
+
+        return $this;
+    }
+
     public function executeCommand(
         string $containerId,
         array $command,
