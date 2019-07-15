@@ -104,4 +104,84 @@ class NetworkServiceTest extends TestCase
             $networkService->connectContainer($networkId, $containerId)
         );
     }
+
+    public function testConnectContainerAliases(): void
+    {
+        $faker = FakerFactory::create();
+        $networkService = $this
+            ->getMockBuilder(NetworkService::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['sendRequest'])
+            ->getMock()
+        ;
+
+        $aliases = [];
+        for ($i = 0; $i <= 25; $i++) {
+            $aliases[] = $faker->domainName;
+        }
+
+        $networkService
+            ->method('sendRequest')
+            ->willReturn($faker->text)
+        ;
+
+        $networkId = $faker->uuid;
+        $containerId = $faker->uuid;
+
+        $networkService
+            ->expects($this->once())
+            ->method('sendRequest')
+            ->with(
+                'POST',
+                '/networks/' . $networkId . '/connect',
+                ['Content-Type' => 'application/json'],
+                [
+                    'Container' => $containerId,
+                    'EndpointConfig' => [
+                        'Aliases' => $aliases
+                    ]
+                ]
+            )
+        ;
+
+        static::assertEquals(
+            $networkService,
+            $networkService->connectContainer($networkId, $containerId, $aliases)
+        );
+    }
+
+    public function testDisconnectContainer(): void
+    {
+        $faker = FakerFactory::create();
+        $networkService = $this
+            ->getMockBuilder(NetworkService::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['sendRequest'])
+            ->getMock()
+        ;
+
+        $networkService
+            ->method('sendRequest')
+            ->willReturn($faker->text)
+        ;
+
+        $networkId = $faker->uuid;
+        $containerId = $faker->uuid;
+
+        $networkService
+            ->expects($this->once())
+            ->method('sendRequest')
+            ->with(
+                'POST',
+                '/networks/' . $networkId . '/disconnect',
+                ['Content-Type' => 'application/json'],
+                ['Container' => $containerId]
+            )
+        ;
+
+        static::assertEquals(
+            $networkService,
+            $networkService->disconnectContainer($networkId, $containerId)
+        );
+    }
 }

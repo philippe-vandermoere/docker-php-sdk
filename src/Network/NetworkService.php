@@ -27,11 +27,29 @@ class NetworkService extends AbstractService
         return $networkCollection;
     }
 
-    public function connectContainer(string $networkId, string $containerId): self
+    public function connectContainer(string $networkId, string $containerId, array $alias = []): self
     {
+        $body = ['Container' => $containerId];
+
+        if (0 < count($alias)) {
+            $body['EndpointConfig']['Aliases'] = $alias;
+        }
+
         $this->sendRequest(
             'POST',
             '/networks/' . $networkId . '/connect',
+            static::CONTENT_TYPE_JSON,
+            $body
+        );
+
+        return $this;
+    }
+
+    public function disconnectContainer(string $networkId, string $containerId): self
+    {
+        $this->sendRequest(
+            'POST',
+            '/networks/' . $networkId . '/disconnect',
             static::CONTENT_TYPE_JSON,
             ['Container' => $containerId]
         );
