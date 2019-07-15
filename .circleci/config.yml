@@ -19,12 +19,12 @@ commands:
 executors:
     php_73:
         docker:
-            - image: php:7.3.6-cli-alpine3.9
+            - image: php:7.3.7-cli-alpine3.10
         working_directory: ~/repo
 
     php_72:
         docker:
-            - image: php:7.2.19-cli-alpine3.9
+            - image: php:7.2.20-cli-alpine3.10
         working_directory: ~/repo
 
 jobs:
