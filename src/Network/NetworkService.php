@@ -27,12 +27,12 @@ class NetworkService extends AbstractService
         return $networkCollection;
     }
 
-    public function connectContainer(string $networkId, string $containerId, array $alias = []): self
+    public function connectContainer(string $networkId, string $containerId, array $aliases = []): self
     {
         $body = ['Container' => $containerId];
 
-        if (0 < count($alias)) {
-            $body['EndpointConfig']['Aliases'] = $alias;
+        if (0 < count($aliases)) {
+            $body['EndpointConfig']['Aliases'] = $aliases;
         }
 
         $this->sendRequest(

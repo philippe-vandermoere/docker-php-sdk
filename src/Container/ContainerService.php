@@ -17,7 +17,7 @@ class ContainerService extends AbstractService
     {
         $containerCollection = new ContainerCollection();
         foreach ($this->jsonDecode($this->sendRequest('GET', '/containers/json')) as $data) {
-            $containerCollection[] = $this->parseContainer($data);
+            $containerCollection[] = $this->get($data->Id);
         }
 
         return $containerCollection;
@@ -177,7 +177,8 @@ class ContainerService extends AbstractService
             $networkCollection[] = new Network(
                 $dataNetwork->NetworkID,
                 $name,
-                $dataNetwork->IPAddress
+                $dataNetwork->IPAddress,
+                \is_array($dataNetwork->Aliases ?? null) ? $dataNetwork->Aliases : []
             );
         }
 
@@ -187,7 +188,7 @@ class ContainerService extends AbstractService
     protected function parseLabels(\stdClass $data): LabelCollection
     {
         $labelCollection = new LabelCollection();
-        foreach ($data->Labels ?? [] as $name => $value) {
+        foreach ($data->Labels ?? $data->Config->Labels ?? [] as $name => $value) {
             $labelCollection[] = new Label($name, $value);
         }
 
