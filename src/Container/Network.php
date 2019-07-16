@@ -20,11 +20,15 @@ class Network
     /** @var string */
     protected $ip;
 
-    public function __construct(string $id, string $name, string $ip)
+    /** @var array */
+    protected $aliases;
+
+    public function __construct(string $id, string $name, string $ip, array $aliases = [])
     {
         $this->id = $id;
         $this->name = $name;
         $this->ip = $ip;
+        $this->aliases = $aliases;
     }
 
     public function getId(): string
@@ -40,5 +44,10 @@ class Network
     public function getIp(): string
     {
         return $this->ip;
+    }
+
+    public function getAliases(): array
+    {
+        return $this->aliases;
     }
 }

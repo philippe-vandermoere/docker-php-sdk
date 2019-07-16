@@ -27,5 +27,18 @@ class NetworkTest extends TestCase
         static::assertEquals($id, $network->getId());
         static::assertEquals($name, $network->getName());
         static::assertEquals($ip, $network->getIp());
+        static::assertEquals([], $network->getAliases());
+
+        $network = new Network(
+            $id = $faker->uuid,
+            $name = $faker->text,
+            $ip = $faker->localIpv4,
+            $aliases = [$faker->domainName, $faker->domainName]
+        );
+
+        static::assertEquals($id, $network->getId());
+        static::assertEquals($name, $network->getName());
+        static::assertEquals($ip, $network->getIp());
+        static::assertEquals($aliases, $network->getAliases());
     }
 }

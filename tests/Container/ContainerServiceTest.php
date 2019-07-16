@@ -29,7 +29,7 @@ class ContainerServiceTest extends TestCase
         $containerService = $this
             ->getMockBuilder(ContainerService::class)
             ->disableOriginalConstructor()
-            ->setMethods(['jsonDecode', 'sendRequest'])
+            ->setMethods(['get', 'jsonDecode', 'sendRequest'])
             ->getMock()
         ;
 
@@ -38,17 +38,48 @@ class ContainerServiceTest extends TestCase
             ->willReturn($response = $faker->text)
         ;
 
-        $data = [];
-        $containerCollection = new ContainerCollection();
-        for ($i = 0; $i <= 25; $i++) {
-            $container = $this->createContainer();
-            $containerCollection[] = $container;
-            $data[] = $this->getContainerStdClass($container);
-        }
+        $containerService
+            ->method('get')
+            ->willReturnOnConsecutiveCalls(
+                $container1 = $this->createContainer(),
+                $container2 = $this->createContainer(),
+                $container3 = $this->createContainer(),
+                $container4 = $this->createContainer(),
+                $container5 = $this->createContainer(),
+                $container6 = $this->createContainer(),
+                $container7 = $this->createContainer(),
+                $container8 = $this->createContainer(),
+                $container9 = $this->createContainer(),
+                $container10 = $this->createContainer(),
+                $container11 = $this->createContainer(),
+                $container12 = $this->createContainer(),
+                $container13 = $this->createContainer(),
+                $container14 = $this->createContainer(),
+                $container15 = $this->createContainer()
+            )
+        ;
 
         $containerService
             ->method('jsonDecode')
-            ->willReturn($data)
+            ->willReturn(
+                [
+                    $this->getContainerStdClass($container1),
+                    $this->getContainerStdClass($container2),
+                    $this->getContainerStdClass($container3),
+                    $this->getContainerStdClass($container4),
+                    $this->getContainerStdClass($container5),
+                    $this->getContainerStdClass($container6),
+                    $this->getContainerStdClass($container7),
+                    $this->getContainerStdClass($container8),
+                    $this->getContainerStdClass($container9),
+                    $this->getContainerStdClass($container10),
+                    $this->getContainerStdClass($container11),
+                    $this->getContainerStdClass($container12),
+                    $this->getContainerStdClass($container13),
+                    $this->getContainerStdClass($container14),
+                    $this->getContainerStdClass($container15),
+                ]
+            )
         ;
 
         $containerService
@@ -61,12 +92,38 @@ class ContainerServiceTest extends TestCase
         ;
 
         $containerService
+            ->expects($this->exactly(15))
+            ->method('get')
+        ;
+
+        $containerService
             ->expects($this->once())
             ->method('jsonDecode')
             ->with($response)
         ;
 
-        static::assertEquals($containerCollection, $containerService->list());
+        static::assertEquals(
+            new ContainerCollection(
+                [
+                    $container1,
+                    $container2,
+                    $container3,
+                    $container4,
+                    $container5,
+                    $container6,
+                    $container7,
+                    $container8,
+                    $container9,
+                    $container10,
+                    $container11,
+                    $container12,
+                    $container13,
+                    $container14,
+                    $container15,
+                ]
+            ),
+            $containerService->list()
+        );
     }
 
     public function testGet(): void
@@ -522,7 +579,7 @@ class ContainerServiceTest extends TestCase
 
         if (true === (bool) mt_rand(0, 1)) {
             $networkCollection = new NetworkCollection();
-            for ($i = 0; $i <= 5; $i++) {
+            for ($i = 0; $i <= 10; $i++) {
                 $networkCollection[] = new Network($faker->uuid, $faker->text, $faker->localIpv4);
             }
 
@@ -560,6 +617,11 @@ class ContainerServiceTest extends TestCase
                 $networkStdClass = new \stdClass();
                 $networkStdClass->NetworkID = $network->getId();
                 $networkStdClass->IPAddress = $network->getIp();
+
+                if (0 !== count($network->getAliases())) {
+                    $networkStdClass->Aliases = $network->getAliases();
+                }
+
                 $stdClass->NetworkSettings->Networks[$network->getName()] = $networkStdClass;
             }
 
@@ -567,9 +629,17 @@ class ContainerServiceTest extends TestCase
         }
 
         if (0 !== $container->getLabels()->count()) {
-            $stdClass->Labels = [];
-            foreach ($container->getLabels() as $label) {
-                $stdClass->Labels[$label->getName()] = $label->getValue();
+            if (true === (bool) mt_rand(0, 1)) {
+                $stdClass->Labels = [];
+                foreach ($container->getLabels() as $label) {
+                    $stdClass->Labels[$label->getName()] = $label->getValue();
+                }
+            } else {
+                $stdClass->Config = new \stdClass();
+                $stdClass->Config->Labels = [];
+                foreach ($container->getLabels() as $label) {
+                    $stdClass->Config->Labels[$label->getName()] = $label->getValue();
+                }
             }
 
             $container->getLabels()->rewind();
