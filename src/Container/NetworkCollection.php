@@ -21,6 +21,12 @@ class NetworkCollection extends ObjectArray
         parent::__construct($values, Network::class);
     }
 
+    public function offsetSet($offset, $value): void
+    {
+        /** @var Network $value */
+        parent::offsetSet($value->getId(), $value);
+    }
+
     public function offsetGet($offset): Network
     {
         return parent::offsetGet($offset);
@@ -29,16 +35,5 @@ class NetworkCollection extends ObjectArray
     public function current(): Network
     {
         return parent::current();
-    }
-
-    public function has(string $networkId): bool
-    {
-        foreach ($this as $network) {
-            if ($networkId === $network->getId()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

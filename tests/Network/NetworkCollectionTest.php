@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Test\PhilippeVandermoere\DockerPhpSdk\Network;
 
+use PhilippeVandermoere\DockerPhpSdk\Container\LabelCollection;
 use PHPUnit\Framework\TestCase;
 use PhilippeVandermoere\DockerPhpSdk\Network\NetworkCollection;
 use PhilippeVandermoere\DockerPhpSdk\Network\Network;
@@ -28,10 +29,10 @@ class NetworkCollectionTest extends TestCase
 
     public function testConstructWithNetwork(): void
     {
-        $faker = FakerFactory::create();
         $values = [];
-        for ($i = 0; $i <= 50; $i++) {
-            $values[] = new Network($faker->uuid, $faker->text, $faker->text);
+        for ($i = 0; $i <= 10; $i++) {
+            $network = $this->createNetwork();
+            $values[$network->getId()] = $network;
         }
 
         $networkCollection = new NetworkCollection($values);
@@ -44,14 +45,13 @@ class NetworkCollectionTest extends TestCase
 
     public function testOffsetGetValidKey(): void
     {
-        $faker = FakerFactory::create();
         $networkCollection = new NetworkCollection();
         $networkCollection->offsetSet(
             $key = mt_rand(0, PHP_INT_MAX),
-            $network = new Network($faker->uuid, $faker->text, $faker->text)
+            $network = $this->createNetwork()
         );
 
-        static::assertEquals($network, $networkCollection->offsetGet($key));
+        static::assertEquals($network, $networkCollection->offsetGet($network->getId()));
     }
 
     public function testOffsetGetInvalidKey(): void
@@ -61,26 +61,16 @@ class NetworkCollectionTest extends TestCase
         $networkCollection->offsetGet(mt_rand(0, PHP_INT_MAX));
     }
 
-    public function testHasFalse(): void
+    protected function createNetwork(): Network
     {
         $faker = FakerFactory::create();
-        $networkCollection = new NetworkCollection();
-        static::assertEquals(
-            false,
-            $networkCollection->has($faker->uuid)
-        );
-    }
-
-    public function testHasTrue(): void
-    {
-        $faker = FakerFactory::create();
-        $networkCollection = new NetworkCollection(
-            [new Network($id = $faker->uuid, $faker->text, $faker->text)]
-        );
-
-        static::assertEquals(
-            true,
-            $networkCollection->has($id)
+        return new Network(
+            $faker->uuid,
+            $faker->text,
+            $faker->text,
+            (bool) mt_rand(0, 1),
+            (bool) mt_rand(0, 1),
+            new LabelCollection()
         );
     }
 }

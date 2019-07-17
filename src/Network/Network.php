@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace PhilippeVandermoere\DockerPhpSdk\Network;
 
+use PhilippeVandermoere\DockerPhpSdk\Container\LabelCollection;
+
 class Network
 {
     /** @var string */
@@ -20,11 +22,29 @@ class Network
     /** @var string */
     protected $driver;
 
-    public function __construct(string $id, string $name, string $driver)
-    {
+    /** @var bool */
+    protected $internal;
+
+    /** @var bool */
+    protected $attachable;
+
+    /** @var LabelCollection */
+    protected $labels;
+
+    public function __construct(
+        string $id,
+        string $name,
+        string $driver,
+        bool $internal,
+        bool $attachable,
+        LabelCollection $labels
+    ) {
         $this->id = $id;
         $this->name = $name;
         $this->driver = $driver;
+        $this->internal = $internal;
+        $this->attachable = $attachable;
+        $this->labels = $labels;
     }
 
     public function getId(): string
@@ -40,5 +60,20 @@ class Network
     public function getDriver(): string
     {
         return $this->driver;
+    }
+
+    public function isInternal(): bool
+    {
+        return $this->internal;
+    }
+
+    public function isAttachable(): bool
+    {
+        return $this->attachable;
+    }
+
+    public function getLabels(): LabelCollection
+    {
+        return $this->labels;
     }
 }
