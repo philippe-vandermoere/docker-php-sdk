@@ -30,8 +30,9 @@ class NetworkCollectionTest extends TestCase
     {
         $faker = FakerFactory::create();
         $values = [];
-        for ($i = 0; $i <= 50; $i++) {
-            $values[] = new Network($faker->uuid, $faker->text, $faker->localIpv4);
+        for ($i = 0; $i <= 10; $i++) {
+            $network = new Network($faker->uuid, $faker->text, $faker->localIpv4);
+            $values[$network->getId()] = $network;
         }
 
         $networkCollection = new NetworkCollection($values);
@@ -51,7 +52,7 @@ class NetworkCollectionTest extends TestCase
             $network = new Network($faker->uuid, $faker->text, $faker->localIpv4)
         );
 
-        static::assertEquals($network, $networkCollection->offsetGet($key));
+        static::assertEquals($network, $networkCollection->offsetGet($network->getId()));
     }
 
     public function testOffsetGetInvalidKey(): void
@@ -59,28 +60,5 @@ class NetworkCollectionTest extends TestCase
         $networkCollection = new NetworkCollection();
         static::expectException(KeyNotFoundException::class);
         $networkCollection->offsetGet(mt_rand(0, PHP_INT_MAX));
-    }
-
-    public function testHasFalse(): void
-    {
-        $faker = FakerFactory::create();
-        $networkCollection = new NetworkCollection();
-        static::assertEquals(
-            false,
-            $networkCollection->has($faker->uuid)
-        );
-    }
-
-    public function testHasTrue(): void
-    {
-        $faker = FakerFactory::create();
-        $networkCollection = new NetworkCollection(
-            [new Network($id = $faker->uuid, $faker->text, $faker->localIpv4)]
-        );
-
-        static::assertEquals(
-            true,
-            $networkCollection->has($id)
-        );
     }
 }
